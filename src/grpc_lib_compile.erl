@@ -194,8 +194,12 @@ print_rpc_call(#{name := Name,
      "%% This is a unary RPC\n",
      Name, "(Connection, Message, Options) ->\n",
      "    grpc_client:unary(Connection, Message,\n"
-     "                      ", Module, ".", Service, ", ", Name, ",\n",
+     "                      ", concat_atom(Module, Service), ", ", Name, ",\n",
      "                       decoder(), Options).\n\n"].
+
+concat_atom(A, B)
+    when is_atom(A), is_atom(B) ->
+    list_to_atom(atom_to_list(A) ++ "." ++ atom_to_list(B)).
 
 print_spec_call(#{name := Name, input := Input}) ->
     ["-spec ", Name, 
