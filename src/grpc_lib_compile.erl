@@ -113,17 +113,17 @@ print_decoder(Module) ->
                 "decoder() -> ", Module, ".\n\n"]).
 
 print_services(Module, Role) ->
-    to_io_list([print_service(Module:get_service_def(S), Role) 
+    to_io_list([print_service(Module:get_service_def(S), Role, Module)
                 || S <- Module:get_service_names()]).
 
-print_service({{service, Name}, RPCs}, Role) ->
+print_service({{service, Name}, RPCs}, Role, Module) ->
     ["%% RPCs for service ", Name, "\n\n",
-     print_rpcs(RPCs, Name, Role)].
+     print_rpcs(RPCs, Name, Role, Module)].
 
-print_rpcs(RPCs, _Servcie, server) ->
+print_rpcs(RPCs, _Servcie, server, _) ->
     [print_rpc(R) || R <- RPCs];
-print_rpcs(RPCs, Service, client) ->
-    [print_rpc_call(R, Service) || #{input_stream := false,
+print_rpcs(RPCs, Service, client, Module) ->
+    [print_rpc_call(R, Service, Module) || #{input_stream := false,
                                      output_stream := false} = R <- RPCs].
 
 print_rpc(#{input_stream := InStream, output_stream := OutStream} = Rpc) ->
@@ -184,7 +184,7 @@ print_bidirectional_streaming_rpc(#{name := Name,
 %% the client side, only for non-streaming rpcs.
 print_rpc_call(#{name := Name,  
                  input := Input,
-                 output := Output} = _Rpc, Service) ->
+                 output := Output} = _Rpc, Service, Module) ->
     ["-spec ", Name, "(\n",
      "        Connection::grpc_client:connection(),\n", 
      "        Message::", Input, "(),\n",
@@ -194,7 +194,7 @@ print_rpc_call(#{name := Name,
      "%% This is a unary RPC\n",
      Name, "(Connection, Message, Options) ->\n",
      "    grpc_client:unary(Connection, Message,\n"
-     "                      ", Service, ", ", Name, ",\n",
+     "                      ", Module, ".", Service, ", ", Name, ",\n",
      "                       decoder(), Options).\n\n"].
 
 print_spec_call(#{name := Name, input := Input}) ->
