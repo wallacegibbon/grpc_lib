@@ -41,31 +41,34 @@ file(Filename, Options) ->
 
 compile_pb(Filename, Options) ->
     ok = gpb_compile:file(Filename, [maps | Options ++ [{i, "."}]]),
-    CompiledPB =  filename:rootname(Filename) ++ ".erl",
+    CompiledPB =  filename:rootname(Filename) ++ "_pb.erl",
     GpbInludeDir = filename:join(code:lib_dir(gpb), "include"),
     {ok, Module, Compiled} = compile:file(CompiledPB, 
                                           [binary, {i, GpbInludeDir}]),
     {module, _} = code:load_binary(Module, CompiledPB, Compiled),
-    Module.
+    ModuleName = list_to_atom(filename:basename(Filename, ".proto")),
+    ModuleName.
 
 write_server(Module) ->
-    ModuleName = atom_to_list(Module) ++ "_server",
+    ModuleSuffixed = concat_atom(Module, '_pb', ""),
+    ModuleName = atom_to_list(Module) ++ "_server_pb",
     Header = print_header(ModuleName),
-    Exports = print_server_exports(Module),
-    Messages = print_messages(Module),
-    Decoder = print_decoder(Module),
-    Services = print_services(Module, server),
+    Exports = print_server_exports(ModuleSuffixed),
+    Messages = print_messages(ModuleSuffixed),
+    Decoder = print_decoder(ModuleSuffixed),
+    Services = print_services(ModuleSuffixed, Module, server),
     ok = file:write_file(ModuleName ++ ".erl", [Header, Exports, Messages,
                                                 Decoder, Services]).
 
 write_client(Module) ->
-    ModuleName = atom_to_list(Module) ++ "_client",
+    ModuleSuffixed = concat_atom(Module, '_pb', ""),
+    ModuleName = atom_to_list(Module) ++ "_client_pb",
     Header = print_header(ModuleName),
-    Exports = print_client_exports(Module),
-    TypeExports = print_type_exports(Module),
-    Messages = print_messages(Module),
-    Decoder = print_decoder(Module),
-    Services = print_services(Module, client),
+    Exports = print_client_exports(ModuleSuffixed),
+    TypeExports = print_type_exports(ModuleSuffixed),
+    Messages = print_messages(ModuleSuffixed),
+    Decoder = print_decoder(ModuleSuffixed),
+    Services = print_services(ModuleSuffixed, Module, client),
     ok = file:write_file(ModuleName ++ ".erl", [Header, Exports, Messages,
                                                 TypeExports, Decoder,
                                                 Services]).
@@ -112,9 +115,9 @@ print_decoder(Module) ->
                 "%% messages.\n",
                 "decoder() -> ", Module, ".\n\n"]).
 
-print_services(Module, Role) ->
-    to_io_list([print_service(Module:get_service_def(S), Role, Module)
-                || S <- Module:get_service_names()]).
+print_services(ModuleSuffixed, Module, Role) ->
+    to_io_list([print_service(ModuleSuffixed:get_service_def(S), Role, Module)
+                || S <- ModuleSuffixed:get_service_names()]).
 
 print_service({{service, Name}, RPCs}, Role, Module) ->
     ["%% RPCs for service ", Name, "\n\n",
@@ -194,12 +197,12 @@ print_rpc_call(#{name := Name,
      "%% This is a unary RPC\n",
      Name, "(Connection, Message, Options) ->\n",
      "    grpc_client:unary(Connection, Message,\n"
-     "                      ", concat_atom(Module, Service), ", ", Name, ",\n",
+     "                      ", concat_atom(Module, Service, "."), ", ", Name, ",\n",
      "                       decoder(), Options).\n\n"].
 
-concat_atom(A, B)
+concat_atom(A, B, ConcatStr)
     when is_atom(A), is_atom(B) ->
-    list_to_atom(atom_to_list(A) ++ "." ++ atom_to_list(B)).
+    list_to_atom(atom_to_list(A) ++ ConcatStr ++ atom_to_list(B)).
 
 print_spec_call(#{name := Name, input := Input}) ->
     ["-spec ", Name, 
@@ -289,4 +292,3 @@ print3(C) ->
 
 string_to_atom(S) when is_list(S) ->
     io_lib:format("~p", [list_to_atom(S)]).
-
