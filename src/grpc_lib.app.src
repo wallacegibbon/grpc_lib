@@ -1,15 +1,17 @@
-{application, grpc_lib,
- [{description, "Shared functions for grpc and grpc_client"},
+{application,
+ grpc_lib,
+ [{description,
+   "Shared functions for grpc and grpc_client"},
   {vsn, "0.1.1"},
   {registered, []},
-  {applications,
-   [kernel,
-    stdlib
-   ]},
-  {env,[]},
+  {applications, [kernel, stdlib, gpb]},
+  {env, []},
   {modules, []},
-
-  {maintainers, ["Chandrashekhar Mullaparthi", "Willem de Jong"]},
+  {maintainers,
+   ["Chandrashekhar Mullaparthi", "Willem de Jong"]},
   {licenses, ["Apache 2.0"]},
-  {links, [{"Github", "https://github.com/Bluehouse-Technology/grpc_lib"}]}
- ]}.
+  {links,
+   [{"Github",
+     "https://github.com/Bluehouse-Technology/grpc_lib"}]}]}
+
+.
